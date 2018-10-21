@@ -5,10 +5,9 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ListView;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
@@ -16,30 +15,32 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
+    private static final boolean FAVOURITED = true;
+    private static final boolean UNFAVOURITED = false;
     private ListView mListView;
     private Question mQuestion;
     private QuestionDetailListAdapter mAdapter;
     private int mGenre;
     private Favourite mFavourite;
-    private boolean mFavouriteFlag = false;
+    private Boolean mFavouriteFlag = UNFAVOURITED;
 
     private DatabaseReference mDatabaseRef;
     private DatabaseReference mAnswerRef;
     private DatabaseReference mFavouriteRef;
-    private FloatingActionButton mFavouriteButton;
+    private ImageButton mFavouriteButton;
     private String mQuestionKey;
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
         public void onChildAdded(DataSnapshot dataSnapshot, String s) {
             HashMap map = (HashMap) dataSnapshot.getValue();
-
             String answerUid = dataSnapshot.getKey();
 
             for (Answer answer : mQuestion.getAnswers()) {
@@ -117,43 +118,64 @@ public class QuestionDetailActivity extends AppCompatActivity {
             }
         });
 
-        // お気に入り追加用ボタン
-        mFavouriteButton = (FloatingActionButton) findViewById(R.id.favourite);
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) {
-            // ログインしていなければ、ボタン非表示
-            mFavouriteButton.hide();
-        } else {
-            // ログインしていれば、ボタン表示してリスナー設定
-            mFavouriteButton.show();
-            mFavouriteButton.setOnClickListener(favouriteClickListener);
-        }
-
-        // 渡ってきたジャンルを保持
-        mGenre = extras.getInt("genre");
-
         mDatabaseRef = FirebaseDatabase.getInstance().getReference();
         mAnswerRef = mDatabaseRef.child(Const.ContentsPATH).child(String.valueOf(mQuestion.getGenre())).child(mQuestion.getQuestionUid()).child(Const.AnswersPATH);
         mAnswerRef.addChildEventListener(mEventListener);
+
+        // お気に入り追加用ボタン
+        mFavouriteButton = (ImageButton) findViewById(R.id.favourite);
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            // ログインしていなければ、ボタン非表示
+            mFavouriteButton.setVisibility(View.INVISIBLE);
+        } else {
+            // ログインしていれば、ボタン表示してリスナー設定
+            mFavouriteButton.setVisibility(View.VISIBLE);
+            // 渡ってきたジャンルを保持
+            mGenre = extras.getInt("genre");
+            mFavouriteButton.setOnClickListener(favouriteClickListener);
+        }
+
     }
 
     private View.OnClickListener favouriteClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
 
-            mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH);
             String genre = String.valueOf(mGenre); // mGenreをIntからStringへ変換
+            mQuestionKey = mQuestion.getQuestionUid();
+            mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH).child(genre).child(mQuestionKey);
 
-            Map<String, String> data = new HashMap<String, String>();
-            data.put("questionkey", mQuestionKey);
-            data.put("genre", genre);
+            mDatabaseRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
 
-            DatabaseReference mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH).child(mQuestionKey);
-            mFavouriteRef.setValue(data);
+                    mFavouriteFlag = FAVOURITED;
+                }
 
-            // mFavouriteFlag = true;
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
 
+                }
+            });
 
+            if (mFavouriteFlag == FAVOURITED) {
+                // お気に入り登録済みのため、お気に入りから削除、お気に入り解除ボタンへ変更
+                mFavouriteRef.removeValue();
+                mFavouriteFlag = UNFAVOURITED;
+                mFavouriteButton.setImageResource(R.drawable.unfavourite);
+            } else if (mFavouriteFlag == UNFAVOURITED){
+                // お気に入り未登録の場合、お気に入りへ登録し、お気に入り登録済みボタンへ変更
+                Map<String, String> data = new HashMap<String, String>();
+                data.put("questionkey", mQuestionKey);
+                data.put("genre", genre);
+
+                DatabaseReference mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH).child(genre).child(mQuestionKey);
+                mFavouriteRef.setValue(data);
+
+                mFavouriteFlag = FAVOURITED;
+                mFavouriteButton.setImageResource(R.drawable.favourite);
+            }
         }
     };
 }

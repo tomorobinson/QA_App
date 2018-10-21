@@ -49,7 +49,6 @@ public class QuestionSendActivity extends AppCompatActivity implements View.OnCl
 
     private int mGenre;
     private Uri mPictureUri;
-    public static String mQuestionKey;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -187,7 +186,6 @@ public class QuestionSendActivity extends AppCompatActivity implements View.OnCl
             }
 
             genreRef.push().setValue(data, this);
-            mQuestionKey = genreRef.push().getKey();
             mProgress.show();
         }
     }
