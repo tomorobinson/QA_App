@@ -35,7 +35,6 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private DatabaseReference mFavouriteRef;
     private ImageButton mFavouriteButton;
     private String mQuestionKey;
-    private DataSnapshot mDataSnapshot;
     private String genre;
     private String mUserId;
 
@@ -91,6 +90,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         // 渡ってきたQuestionのオブジェクトを保持する
         Bundle extras = getIntent().getExtras();
         mQuestion = (Question) extras.get("question");
+        mUserId = (String) extras.get("userid");
         setTitle(mQuestion.getTitle());
 
         // ListViewの準備
@@ -143,6 +143,12 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkFavouriteExist();
+    }
+
     private View.OnClickListener favouriteClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -157,10 +163,9 @@ public class QuestionDetailActivity extends AppCompatActivity {
             } else if (mFavouriteFlag == UNFAVOURITED) {
                 // お気に入り未登録の場合、お気に入りへ登録し、お気に入り登録済みボタンへ変更
                 Map<String, String> data = new HashMap<String, String>();
-                data.put("question", mQuestionKey);
                 data.put("genre", genre);
 
-                DatabaseReference mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH).child(mUserId);
+                DatabaseReference mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH).child(mUserId).child(mQuestionKey);
                 mFavouriteRef.setValue(data);
 
                 mFavouriteFlag = FAVOURITED;
@@ -172,16 +177,17 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private void checkFavouriteExist() {
         genre = String.valueOf(mGenre); // mGenreをIntからStringへ変換
         mQuestionKey = mQuestion.getQuestionUid();
-        mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH).child(mUserId);
+        mFavouriteRef = mDatabaseRef.child(Const.FavouritePATH).child(mUserId).child(mQuestionKey);
         mFavouriteRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 // レコードを取得できた場合、お気に入り登録済み
-                mDataSnapshot = dataSnapshot;
-                if (mFavouriteFlag == UNFAVOURITED){
-                    // レコードを取得できた場合でも、お気に入り未登録のフラグがたっていたら、フラグ内容の更新は行わない。
-                } else {
+                if (dataSnapshot.getValue() != null){
                     mFavouriteFlag = FAVOURITED;
+                    mFavouriteButton.setImageResource(R.drawable.favourite);
+                } else {
+                    mFavouriteFlag = UNFAVOURITED;
+                    mFavouriteButton.setImageResource(R.drawable.unfavourite);
                 }
             }
 
@@ -190,10 +196,5 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
             }
         });
-
-        if (mDataSnapshot == null) {
-            // レコードを取得できなかった場合、お気に入り未登録なので、未登録フラグをたてる
-            mFavouriteFlag = UNFAVOURITED;
-        }
     }
 }
