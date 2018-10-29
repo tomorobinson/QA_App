@@ -182,7 +182,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 // レコードを取得できた場合、お気に入り登録済み
-                if (dataSnapshot.getValue() != null){
+                if (dataSnapshot.getValue() != null) {
                     mFavouriteFlag = FAVOURITED;
                     mFavouriteButton.setImageResource(R.drawable.favourite);
                 } else {

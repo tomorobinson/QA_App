@@ -27,6 +27,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -41,10 +43,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ArrayList<Question> mQuestionArrayList, mContentsArrayList, mFilteredQuestionArrayList;
     private ArrayList<String> mFavouriteArrayList;
     private QuestionsListAdapter mAdapter;
-    private Question question, questionAll, favouritedQuestion;
+    private Question question, questionAll;
     private MenuItem mFavouriteMenuItem;
     private FirebaseUser user;
     private String mUserId;
+    private boolean favouriteSelected = false;
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -153,246 +156,270 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 }
                 questionAll = new Question(title, body, name, uid, ds.getKey(), genre, bytes, answerArrayList);
-
-                for (String qid : mFavouriteArrayList){
-                    if (ds.getKey().equals(qid)){
-                        mFilteredQuestionArrayList.add(questionAll);
-                    }
                 mContentsArrayList.add(questionAll);
             }
+
+            // 質問のフィルタリング
+            mFilteredQuestionArrayList.clear();
+            filterQuestions();
         }
 
-        // アダプターにお気に入り済みの質問一覧をセット
-            mAdapter.setQuestionArrayList(mFilteredQuestionArrayList);
-            mListView.setAdapter(mAdapter);
-            mAdapter.notifyDataSetChanged();
+        @Override
+        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+        }
+
+        @Override
+        public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+        }
+
+        @Override
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    };
+
+    private ChildEventListener mFavouriteEventListener = new ChildEventListener() {
+        @Override
+        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+            HashMap map = (HashMap) dataSnapshot.getValue();
+
+            // 全てのお気に入りを格納するリストを作成
+            String questionId = dataSnapshot.getKey();
+            mFavouriteArrayList.add(questionId);
+
+            // 質問のフィルタリング
+            mFilteredQuestionArrayList.clear();
+            filterQuestions();
+        }
+
+
+        @Override
+        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+        }
+
+        @Override
+        public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+        }
+
+        @Override
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
+        }
+    };
+
+    private void filterQuestions() {
+        for (String questionId : mFavouriteArrayList) {
+            for (Question q : mContentsArrayList) {
+                if (questionId.equals(q.getQuestionUid())) {
+                    mFilteredQuestionArrayList.add(q);
+                }
+            }
+        }
+        mAdapter.setQuestionArrayList(mFilteredQuestionArrayList);
+        mAdapter.notifyDataSetChanged();
+        mListView.setAdapter(mAdapter);
     }
 
     @Override
-    public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-    }
-
-    @Override
-    public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-    }
-
-    @Override
-    public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-    }
-
-    @Override
-    public void onCancelled(DatabaseError databaseError) {
-
-    }
-};
-
-private ChildEventListener mFavouriteEventListener=new ChildEventListener(){
-@Override
-public void onChildAdded(DataSnapshot dataSnapshot,String s){
-        HashMap map=(HashMap)dataSnapshot.getValue();
-
-        // 全てのお気に入りを格納するリストを作成
-        String questionId=dataSnapshot.getKey();
-
-        mFavouriteArrayList.add(questionId);
-        }
-
-
-@Override
-public void onChildChanged(DataSnapshot dataSnapshot,String s){
-
-        }
-
-@Override
-public void onChildRemoved(DataSnapshot dataSnapshot){
-
-        }
-
-@Override
-public void onChildMoved(DataSnapshot dataSnapshot,String s){
-
-        }
-
-@Override
-public void onCancelled(DatabaseError databaseError){
-
-        }
-        };
-
-@Override
-protected void onCreate(Bundle savedInstanceState){
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         // メンバ変数
-        mToolbar=(Toolbar)findViewById(R.id.toolbar);
+        mToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
 
-        FloatingActionButton fab=(FloatingActionButton)findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener(){
-@Override
-public void onClick(View view){
-        // ジャンルを選択していない場合（mGenre == 0）はエラーを表示するだけ
-        if(mGenre==0){
-        Snackbar.make(view,"ジャンルを選択して下さい",Snackbar.LENGTH_LONG).show();
-        return;
-        }
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // ジャンルを選択していない場合（mGenre == 0）はエラーを表示するだけ
+                if (mGenre == 0) {
+                    Snackbar.make(view, "ジャンルを選択して下さい", Snackbar.LENGTH_LONG).show();
+                    return;
+                }
 
-        if(user==null){
-        // ログインしていなければログイン画面に遷移させる
-        Intent intent=new Intent(getApplicationContext(),LoginActivity.class);
-        startActivity(intent);
+                if (user == null) {
+                    // ログインしていなければログイン画面に遷移させる
+                    Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+                    startActivity(intent);
 
-        }else{
-        // ジャンルを渡して質問作成画面を起動する
-        Intent intent=new Intent(getApplicationContext(),QuestionSendActivity.class);
-        intent.putExtra("genre",mGenre);
-        startActivity(intent);
-        }
-        }
+                } else {
+                    // ジャンルを渡して質問作成画面を起動する
+                    Intent intent = new Intent(getApplicationContext(), QuestionSendActivity.class);
+                    intent.putExtra("genre", mGenre);
+                    startActivity(intent);
+                }
+            }
         });
 
         // ナビゲーションドロワーの設定
-        DrawerLayout drawer=(DrawerLayout)findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle=new ActionBarDrawerToggle(this,drawer,mToolbar,R.string.app_name,R.string.app_name);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, mToolbar, R.string.app_name, R.string.app_name);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView=(NavigationView)findViewById(R.id.nav_view);
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
         // お気に入りメニューの設定、当該メニューの表示・非表示の判定
-        Menu menu=navigationView.getMenu();
-        mFavouriteMenuItem=menu.findItem(R.id.nav_favourite);
+        Menu menu = navigationView.getMenu();
+        mFavouriteMenuItem = menu.findItem(R.id.nav_favourite);
         checkLogonStatus();
 
         // Firebase
-        mDatabaseReference=FirebaseDatabase.getInstance().getReference();
+        mDatabaseReference = FirebaseDatabase.getInstance().getReference();
 
         // ListViewの準備
-        mListView=(ListView)findViewById(R.id.listView);
-        mAdapter=new QuestionsListAdapter(this);
-        mQuestionArrayList=new ArrayList<Question>();
+        mListView = (ListView) findViewById(R.id.listView);
+        mAdapter = new QuestionsListAdapter(this);
+        mQuestionArrayList = new ArrayList<Question>();
         mAdapter.notifyDataSetChanged();
 
         // お気に入りリストの準備
-        mFavouriteArrayList=new ArrayList<String>();
+        mFavouriteArrayList = new ArrayList<String>();
 
         // コンテンツリストの準備
-        mContentsArrayList=new ArrayList<Question>();
+        mContentsArrayList = new ArrayList<Question>();
 
         // お気に入り登録済み質問リストの準備
-        mFilteredQuestionArrayList=new ArrayList<Question>();
+        mFilteredQuestionArrayList = new ArrayList<Question>();
 
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
-@Override
-public void onItemClick(AdapterView<?> parent,View view,int position,long id){
-        // Questionのインスタンスを渡して質問詳細画面を起動する
-        Intent intent=new Intent(getApplicationContext(),QuestionDetailActivity.class);
-        intent.putExtra("question",mQuestionArrayList.get(position));
-        intent.putExtra("genre",mGenre);
-        intent.putExtra("userid",mUserId);
-        startActivity(intent);
-        }
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Questionのインスタンスを渡して質問詳細画面を起動する
+                Intent intent = new Intent(getApplicationContext(), QuestionDetailActivity.class);
+
+                if (mFilteredQuestionArrayList.size() != 0){
+                    intent.putExtra("question", mFilteredQuestionArrayList.get(position));
+                    intent.putExtra("genre", mFilteredQuestionArrayList.get(position).getGenre());
+                } else {
+                    intent.putExtra("question", mQuestionArrayList.get(position));
+                    intent.putExtra("genre", mGenre);
+                }
+                intent.putExtra("userid", mUserId);
+                startActivity(intent);
+            }
         });
-        }
+    }
 
-private void checkLogonStatus(){
+    private void checkLogonStatus() {
         // ログイン済みのユーザーを取得する
-        user=FirebaseAuth.getInstance().getCurrentUser();
+        user = FirebaseAuth.getInstance().getCurrentUser();
 
-        if(user!=null){
-        mUserId=user.getUid();
-        }
-
-        if(mFavouriteMenuItem!=null){
-        if(user==null){
-        // ログインしていない場合、メニュー非表示
-        mFavouriteMenuItem.setVisible(false);
-        }else{
-        // ログインしている場合、メニュー表示
-        mFavouriteMenuItem.setVisible(true);
-        }
-        }
+        if (user != null) {
+            mUserId = user.getUid();
         }
 
-@Override
-protected void onResume(){
+        if (mFavouriteMenuItem != null) {
+            if (user == null) {
+                // ログインしていない場合、メニュー非表示
+                mFavouriteMenuItem.setVisible(false);
+            } else {
+                // ログインしている場合、メニュー表示
+                mFavouriteMenuItem.setVisible(true);
+            }
+        }
+    }
+
+    @Override
+    protected void onResume() {
         super.onResume();
 
         // 1:趣味を既定の選択とする
-        if(mGenre==0){
-        NavigationView navigationView=(NavigationView)findViewById(R.id.nav_view);
-        onNavigationItemSelected(navigationView.getMenu().getItem(0));
+        if (mGenre == 0) {
+            NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+            onNavigationItemSelected(navigationView.getMenu().getItem(0));
         }
 
         checkLogonStatus();
-        }
 
-@Override
-public boolean onCreateOptionsMenu(Menu menu){
+        if (favouriteSelected == true){
+            mFilteredQuestionArrayList.clear();
+            filterQuestions();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main,menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
-        }
+    }
 
-@Override
-public boolean onOptionsItemSelected(MenuItem item){
-        int id=item.getItemId();
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
 
-        if(id==R.id.action_settings){
-        Intent intent=new Intent(getApplicationContext(),SettingActivity.class);
-        startActivity(intent);
-        return true;
+        if (id == R.id.action_settings) {
+            Intent intent = new Intent(getApplicationContext(), SettingActivity.class);
+            startActivity(intent);
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.nav_hobby) {
+            mToolbar.setTitle("趣味");
+            mGenre = 1;
+            favouriteSelected = false;
+        } else if (id == R.id.nav_life) {
+            mToolbar.setTitle("生活");
+            mGenre = 2;
+            favouriteSelected = false;
+        } else if (id == R.id.nav_health) {
+            mToolbar.setTitle("健康");
+            mGenre = 3;
+            favouriteSelected = false;
+        } else if (id == R.id.nav_compter) {
+            mToolbar.setTitle("コンピューター");
+            mGenre = 4;
+            favouriteSelected = false;
+        } else if (id == R.id.nav_favourite) {
+            mToolbar.setTitle("お気に入り");
+            favouriteSelected = true;
+
+            // お気に入りリストをクリア
+            mFavouriteArrayList.clear();
+
+            // お気に入りリストにリスナーを登録する
+            if (mFavouriteRef != null) {
+                mFavouriteRef.removeEventListener(mFavouriteEventListener);
+            }
+            mFavouriteRef = mDatabaseReference.child(Const.FavouritePATH).child(mUserId);
+            mFavouriteRef.addChildEventListener(mFavouriteEventListener);
+
+            // 質問リスト及びお気に入り登録済み質問リストをクリア
+            mContentsArrayList.clear();
+
+            if (mContentsRef != null) {
+                mContentsRef.removeEventListener(mContentsEventListener);
+            }
+            mContentsRef = mDatabaseReference.child(Const.ContentsPATH);
+            mContentsRef.addChildEventListener(mContentsEventListener);
         }
 
-@Override
-public boolean onNavigationItemSelected(MenuItem item){
-        int id=item.getItemId();
-
-        if(id==R.id.nav_hobby){
-        mToolbar.setTitle("趣味");
-        mGenre=1;
-        }else if(id==R.id.nav_life){
-        mToolbar.setTitle("生活");
-        mGenre=2;
-        }else if(id==R.id.nav_health){
-        mToolbar.setTitle("健康");
-        mGenre=3;
-        }else if(id==R.id.nav_compter){
-        mToolbar.setTitle("コンピューター");
-        mGenre=4;
-        }else if(id==R.id.nav_favourite){
-        mToolbar.setTitle("お気に入り");
-
-        // お気に入りリストをクリア
-        mFavouriteArrayList.clear();
-
-        // お気に入りリストにリスナーを登録する
-        if(mFavouriteRef!=null){
-        mFavouriteRef.removeEventListener(mFavouriteEventListener);
-        }
-        mFavouriteRef=mDatabaseReference.child(Const.FavouritePATH).child(mUserId);
-        mFavouriteRef.addChildEventListener(mFavouriteEventListener);
-
-        // 質問リスト及びお気に入り登録済み質問リストをクリア
-        mContentsArrayList.clear();
-        mFilteredQuestionArrayList.clear();
-
-        if(mContentsRef!=null){
-        mContentsRef.removeEventListener(mContentsEventListener);
-        }
-        mContentsRef=mDatabaseReference.child(Const.ContentsPATH);
-        mContentsRef.addChildEventListener(mContentsEventListener);
-        }
-
-        DrawerLayout drawer=(DrawerLayout)findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
 
         // 質問のリストをクリアしてから再度Adapterにセットし、AdapterをListViewにセットし直す
@@ -401,12 +428,12 @@ public boolean onNavigationItemSelected(MenuItem item){
         mListView.setAdapter(mAdapter);
 
         // 選択したジャンルにリスナーを登録する
-        if(mGenreRef!=null){
-        mGenreRef.removeEventListener(mEventListener);
+        if (mGenreRef != null) {
+            mGenreRef.removeEventListener(mEventListener);
         }
-        mGenreRef=mDatabaseReference.child(Const.ContentsPATH).child(String.valueOf(mGenre));
+        mGenreRef = mDatabaseReference.child(Const.ContentsPATH).child(String.valueOf(mGenre));
         mGenreRef.addChildEventListener(mEventListener);
 
         return true;
-        }
-        }
+    }
+}
