@@ -153,7 +153,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
 
-            checkFavouriteExist();
+//            checkFavouriteExist();
 
             if (mFavouriteFlag == FAVOURITED) {
                 // お気に入り登録済みのため、お気に入りから削除、お気に入り解除ボタンへ変更

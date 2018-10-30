@@ -11,7 +11,6 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Base64;
-import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,10 +26,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -48,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private FirebaseUser user;
     private String mUserId;
     private boolean favouriteSelected = false;
+    private FloatingActionButton fab;
 
     private ChildEventListener mEventListener = new ChildEventListener() {
         @Override
@@ -243,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(mToolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -383,21 +380,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             mToolbar.setTitle("趣味");
             mGenre = 1;
             favouriteSelected = false;
+            fab.show();
         } else if (id == R.id.nav_life) {
             mToolbar.setTitle("生活");
             mGenre = 2;
             favouriteSelected = false;
+            fab.show();
         } else if (id == R.id.nav_health) {
             mToolbar.setTitle("健康");
             mGenre = 3;
             favouriteSelected = false;
+            fab.show();
         } else if (id == R.id.nav_compter) {
             mToolbar.setTitle("コンピューター");
             mGenre = 4;
             favouriteSelected = false;
+            fab.show();
         } else if (id == R.id.nav_favourite) {
             mToolbar.setTitle("お気に入り");
             favouriteSelected = true;
+            fab.hide();
 
             // お気に入りリストをクリア
             mFavouriteArrayList.clear();
